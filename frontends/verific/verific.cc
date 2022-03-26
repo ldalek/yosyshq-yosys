@@ -2729,7 +2729,6 @@ struct VerificPass : public Pass {
 		if (GetSize(args) > argidx && (args[argidx] == "-vlog95" || args[argidx] == "-vlog2k" || args[argidx] == "-sv2005" ||
 				args[argidx] == "-sv2009" || args[argidx] == "-sv2012" || args[argidx] == "-sv" || args[argidx] == "-formal"))
 		{
-			Array file_names;
 			unsigned verilog_mode;
 
 			if (args[argidx] == "-vlog95")
@@ -2771,12 +2770,12 @@ struct VerificPass : public Pass {
 			for (auto &dir : verific_libdirs)
 				veri_file::AddYDir(dir.c_str());
 
-			while (argidx < GetSize(args))
-				file_names.Insert(args[argidx++].c_str());
 
-			if (!veri_file::AnalyzeMultipleFiles(&file_names, verilog_mode, work.c_str(), veri_file::MFCU)) {
+			while (argidx < GetSize(args)) {
+				if (!veri_file::Analyze(args[argidx++].c_str(), verilog_mode, work.c_str(), veri_file::MFCU)) {
 					verific_error_msg.clear();
 					log_cmd_error("Reading Verilog/SystemVerilog sources failed.\n");
+				}
 			}
 
 			verific_import_pending = true;
