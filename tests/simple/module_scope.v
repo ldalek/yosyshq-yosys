@@ -1,5 +1,3 @@
-`default_nettype none
-
 module module_scope_Example(o1, o2);
    parameter [31:0] v1 = 10;
    parameter [31:0] v2 = 20;
