@@ -149,7 +149,7 @@ YOSYS_VER := 0.26+50
 # back to calling git directly.
 TARBALL_GIT_REV := $(file < $(YOSYS_SRC)/.gitcommit)
 ifeq ($(TARBALL_GIT_REV),$$Format:%h$$)
-GIT_REV := $(shell git -C $(YOSYS_SRC) rev-parse --short=9 HEAD || echo UNKNOWN)
+GIT_REV := $(shell GIT_DIR=$(YOSYS_SRC)/.git git rev-parse --short=9 HEAD || echo UNKNOWN)
 else
 GIT_REV := $(TARBALL_GIT_REV)
 endif
