@@ -225,3 +225,259 @@ module FIFO8KB (
     parameter FULLPOINTER  = "0b00000000000000";
     parameter FULLPOINTER1 = "0b00000000000000";
 endmodule
+
+(* blackbox, keep *)
+module GSR (
+	input GSR
+);
+endmodule
+
+(* blackbox, keep *)
+module SGSR (
+	input GSR, CLK
+);
+endmodule
+
+(* blackbox *)
+module CLKDIVC (
+    input RST,
+    input CLKI,
+    input ALIGNWD,
+    output CDIV1,
+    output CDIVX
+);
+    parameter GSR = "DISABLED";
+    parameter DIV = "2.0";
+endmodule
+
+(* blackbox *)
+module ECLKSYNCA (
+    input ECLKI,
+    input STOP,
+    output ECLKO
+);
+endmodule
+
+(* blackbox *)
+module ECLKBRIDGECS (
+    input CLK0,
+    input CLK1,
+    input SEL,
+    output ECSOUT
+);
+endmodule
+
+(* blackbox , keep *)
+module JTAGF (
+	(* iopad_external_pin *)
+	input TCK, 
+	(* iopad_external_pin *)
+	input TMS, 
+	(* iopad_external_pin *)
+	input TDI,
+	input JTDO2, JTDO1,
+	(* iopad_external_pin *)
+	output TDO,
+	output JTDI, JTCK, JRTI2, JRTI1,
+	output JSHIFT, JUPDATE, JRSTN, JCE2, JCE1
+);
+    parameter ER1 = "ENABLED";
+    parameter ER2 = "ENABLED";
+endmodule
+
+(* blackbox, keep *)
+module START (
+   input STARTCLK
+);
+endmodule
+
+(* blackbox *)
+module SEDFA (
+    input SEDSTDBY,
+    input SEDENABLE,
+    input SEDSTART,
+    input SEDFRCERR,
+    output SEDERR,
+    output SEDDONE,
+    output SEDINPROG,
+    output SEDCLKOUT
+);
+    parameter SED_CLK_FREQ = "3.5";
+    parameter CHECKALWAYS = "DISABLED";
+    parameter DEV_DENSITY = "1300L";
+endmodule
+
+(* blackbox *)
+module SEDFB (
+    output SEDERR,
+    output SEDDONE,
+    output SEDINPROG,
+    output SEDCLKOUT
+);
+endmodule
+
+(* blackbox *)
+module DQSDLLC (
+    input CLK,
+    input RST,
+    input DDCNTLN,
+    input FREEZE,
+    output LOCK,
+    output DQSDEL
+);
+    parameter GSR = "ENABLED";
+    parameter DEL_ADJ = "PLUS";
+    parameter DEL_VAL = 0;
+    parameter LOCK_SENSITIVITY = "LOW";
+    parameter FIN = "100.0";
+    parameter FORCE_MAX_DELAY = "NO";
+endmodule
+
+(* blackbox *)
+module DELAYD (
+    input A,
+    input DEL4, DEL3, DEL2, DEL1, DEL0,
+    output Z
+);
+endmodule
+
+(* blackbox *)
+module DLLDELC (
+    input CLKI,
+    input DQSDEL,
+    output CLKO
+);
+    parameter DEL_ADJ  = "PLUS";
+    parameter DEL_VAL = 0;
+endmodule
+
+(* blackbox *)
+module CLKFBBUFA (
+    input A,
+    output Z
+);
+endmodule
+
+(* blackbox *)
+module PCNTR (
+    input CLK,
+    input USERTIMEOUT,
+    input USERSTDBY,
+    input CLRFLAG,
+    input CFGWAKE,
+    input CFGSTDBY,
+    output STDBY,
+    output STOP,
+    output SFLAG
+);
+    parameter STDBYOPT = "USER_CFG";
+    parameter TIMEOUT = "BYPASS";
+    parameter WAKEUP = "USER";
+    parameter POROFF = "FALSE";
+    parameter BGOFF = "FALSE";
+endmodule
+
+(* blackbox, keep *)
+module TSALL (
+    input TSALL
+);
+endmodule
+
+(* blackbox *)
+module PLLREFCS (
+    input CLK0,
+    input CLK1,
+    input SEL,
+    output PLLCSOUT
+);
+endmodule
+
+(* blackbox *)
+module EFB (
+    input WBCLKI, WBRSTI, WBCYCI, WBSTBI, WBWEI,
+    input WBADRI7, WBADRI6, WBADRI5, WBADRI4,
+    input WBADRI3, WBADRI2, WBADRI1, WBADRI0,
+    input WBDATI7, WBDATI6, WBDATI5, WBDATI4,
+    input WBDATI3, WBDATI2, WBDATI1, WBDATI0,
+    input PLL0DATI7, PLL0DATI6, PLL0DATI5, PLL0DATI4,
+    input PLL0DATI3, PLL0DATI2, PLL0DATI1, PLL0DATI0,
+    input PLL0ACKI,
+    input PLL1DATI7, PLL1DATI6, PLL1DATI5, PLL1DATI4,
+    input PLL1DATI3, PLL1DATI2, PLL1DATI1, PLL1DATI0,
+    input PLL1ACKI,
+    input I2C1SCLI, I2C1SDAI, I2C2SCLI, I2C2SDAI,
+    input SPISCKI, SPIMISOI, SPIMOSII, SPISCSN,
+    input TCCLKI, TCRSTN, TCIC, UFMSN,
+    output WBDATO7, WBDATO6, WBDATO5, WBDATO4,
+    output WBDATO3, WBDATO2, WBDATO1, WBDATO0,
+    output WBACKO,
+    output PLLCLKO, PLLRSTO, PLL0STBO, PLL1STBO, PLLWEO,
+    output PLLADRO4, PLLADRO3, PLLADRO2, PLLADRO1, PLLADRO0,
+    output PLLDATO7, PLLDATO6, PLLDATO5, PLLDATO4,
+    output PLLDATO3, PLLDATO2, PLLDATO1, PLLDATO0,
+    output I2C1SCLO, I2C1SCLOEN, I2C1SDAO, I2C1SDAOEN,
+    output I2C2SCLO, I2C2SCLOEN, I2C2SDAO, I2C2SDAOEN,
+    output I2C1IRQO, I2C2IRQO,
+    output SPISCKO, SPISCKEN, SPIMISOO, SPIMISOEN,
+    output SPIMOSIO, SPIMOSIEN,
+    output SPIMCSN0, SPIMCSN1, SPIMCSN2, SPIMCSN3,
+    output SPIMCSN4, SPIMCSN5, SPIMCSN6, SPIMCSN7,
+    output SPICSNEN, SPIIRQO,
+    output TCINT, TCOC, WBCUFMIRQ,
+    output CFGWAKE, CFGSTDBY
+);
+    parameter EFB_I2C1= "DISABLED";
+    parameter EFB_I2C2= "DISABLED";
+    parameter EFB_SPI = "DISABLED";
+    parameter EFB_TC = "DISABLED";
+    parameter EFB_TC_PORTMODE = "NO_WB";
+    parameter EFB_UFM = "DISABLED";
+    parameter EFB_WB_CLK_FREQ = "50.0";
+
+    parameter DEV_DENSITY = "1300L";
+    parameter UFM_INIT_PAGES = 0;
+    parameter UFM_INIT_START_PAGE = 0;
+    parameter UFM_INIT_ALL_ZEROS = "ENABLED";
+    parameter UFM_INIT_FILE_NAME = "NONE";
+    parameter UFM_INIT_FILE_FORMAT = "HEX";
+
+    parameter I2C1_ADDRESSING = "7BIT";
+    parameter I2C2_ADDRESSING = "7BIT";
+    parameter I2C1_SLAVE_ADDR = "0b1000001";
+    parameter I2C2_SLAVE_ADDR = "0b1000010";
+    parameter I2C1_BUS_PERF = "100kHz";
+    parameter I2C2_BUS_PERF = "100kHz";
+    parameter I2C1_CLK_DIVIDER = 1;
+    parameter I2C2_CLK_DIVIDER = 1;
+    parameter I2C1_GEN_CALL = "DISABLED";
+    parameter I2C2_GEN_CALL = "DISABLED";
+    parameter I2C1_WAKEUP = "DISABLED";
+    parameter I2C2_WAKEUP = "DISABLED";
+
+    parameter SPI_MODE = "SLAVE";
+    parameter SPI_CLK_DIVIDER = 1;
+    parameter SPI_LSB_FIRST = "DISABLED";
+    parameter SPI_CLK_INV = "DISABLED";
+    parameter SPI_PHASE_ADJ = "DISABLED";
+    parameter SPI_SLAVE_HANDSHAKE = "DISABLED";
+    parameter SPI_INTR_TXRDY = "DISABLED";
+    parameter SPI_INTR_RXRDY = "DISABLED";
+    parameter SPI_INTR_TXOVR = "DISABLED";
+    parameter SPI_INTR_RXOVR = "DISABLED";
+    parameter SPI_WAKEUP = "DISABLED";
+
+    parameter TC_MODE = "CTCM";
+    parameter TC_SCLK_SEL = "PCLOCK";
+    parameter TC_CCLK_SEL = 1;
+    parameter GSR = "ENABLED";
+    parameter TC_TOP_SET = 65535;
+    parameter TC_OCR_SET = 32767;
+    parameter TC_OC_MODE = "TOGGLE";
+    parameter TC_RESETN = "ENABLED";
+    parameter TC_TOP_SEL = "ON";
+    parameter TC_OV_INT = "OFF";
+    parameter TC_OCR_INT = "OFF";
+    parameter TC_ICR_INT = "OFF";
+    parameter TC_OVERFLOW = "ENABLED";
+    parameter TC_ICAPTURE = "DISABLED";
+endmodule
