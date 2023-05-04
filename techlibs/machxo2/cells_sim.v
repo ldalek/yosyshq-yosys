@@ -1,3 +1,11 @@
+module VHI (output Z);
+   assign Z = 1'b1;
+endmodule
+
+module VLO (output Z);
+   assign Z = 1'b0;
+endmodule
+
 module LUT2(input A, B, output Z);
     parameter [3:0] INIT = 4'h0;
     wire [1:0] s1 = B ?     INIT[ 3:2] :     INIT[1:0];
