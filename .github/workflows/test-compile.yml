@@ -44,6 +44,9 @@ jobs:
             cpp_std: 'c++11'
       fail-fast: false
     steps:
+      - name: Checkout Yosys
+        uses: actions/checkout@v4
+
       - name: Setup environment
         uses: ./.github/actions/setup-build-env
 
@@ -57,9 +60,6 @@ jobs:
         run: |
           $CC --version
           $CXX --version
-
-      - name: Checkout Yosys
-        uses: actions/checkout@v4
 
       - name: Build
         shell: bash
