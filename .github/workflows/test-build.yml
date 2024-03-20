@@ -101,6 +101,10 @@ jobs:
         run:
           tar -xvf build.tar
 
+      - name: Log yosys-config output
+        run: |
+          ./yosys-config || true
+
       - name: Run tests
         shell: bash
         run: |
@@ -137,6 +141,10 @@ jobs:
         shell: bash
         run:
           tar -xvf build.tar
+
+      - name: Log yosys-config output
+        run: |
+          ./yosys-config || true
 
       - name: Run tests
         shell: bash
