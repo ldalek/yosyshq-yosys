@@ -111,3 +111,34 @@ jobs:
         shell: bash
         run: |
           find tests/**/*.err -print -exec cat {} \;
+
+  test-docs:
+    name: Run docs tests
+    needs: build-yosys
+    runs-on: ${{ matrix.os }}
+    env:
+      CC: clang
+    strategy:
+      matrix:
+        os: [ubuntu-20.04, macos-13]
+    steps:
+      - name: Checkout Yosys
+        uses: actions/checkout@v4
+
+      - name: Setup environment
+        uses: ./.github/actions/setup-build-env
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: build-${{ matrix.os }}
+
+      - name: Uncompress build
+        shell: bash
+        run:
+          tar -xvf build.tar
+
+      - name: Run tests
+        shell: bash
+        run: |
+          make -C docs test -j${{ env.procs }}
