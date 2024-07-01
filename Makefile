@@ -3,7 +3,6 @@ CONFIG := none
 # CONFIG := clang
 # CONFIG := gcc
 # CONFIG := afl-gcc
-# CONFIG := emcc
 # CONFIG := wasi
 # CONFIG := mxe
 # CONFIG := msys2-32
@@ -18,10 +17,12 @@ ENABLE_READLINE := 1
 ENABLE_EDITLINE := 0
 ENABLE_GHDL := 0
 ENABLE_VERIFIC := 0
+ENABLE_VERIFIC_SYSTEMVERILOG := 1
+ENABLE_VERIFIC_VHDL := 1
+ENABLE_VERIFIC_HIER_TREE := 1
+ENABLE_VERIFIC_YOSYSHQ_EXTENSIONS := 1
 ENABLE_VERIFIC_EDIF := 0
 ENABLE_VERIFIC_LIBERTY := 0
-DISABLE_VERIFIC_EXTENSIONS := 0
-DISABLE_VERIFIC_VHDL := 0
 ENABLE_COVER := 1
 ENABLE_LIBYOSYS := 0
 ENABLE_ZLIB := 1
@@ -91,7 +92,7 @@ all: top-all
 YOSYS_SRC := $(dir $(firstword $(MAKEFILE_LIST)))
 VPATH := $(YOSYS_SRC)
 
-CXXSTD ?= c++11
+CXXSTD ?= c++17
 CXXFLAGS := $(CXXFLAGS) -Wall -Wextra -ggdb -I. -I"$(YOSYS_SRC)" -MD -MP -D_YOSYS_ -fPIC -I$(PREFIX)/include
 LIBS := $(LIBS) -lstdc++ -lm
 PLUGIN_LINKFLAGS :=
@@ -142,7 +143,7 @@ LIBS += -lrt
 endif
 endif
 
-YOSYS_VER := 0.40+33
+YOSYS_VER := 0.42+40
 
 # Note: We arrange for .gitcommit to contain the (short) commit hash in
 # tarballs generated with git-archive(1) using .gitattributes. The git repo
@@ -158,17 +159,8 @@ endif
 OBJS = kernel/version_$(GIT_REV).o
 
 bumpversion:
-	sed -i "/^YOSYS_VER := / s/+[0-9][0-9]*$$/+`git log --oneline a1bb025.. | wc -l`/;" Makefile
+	sed -i "/^YOSYS_VER := / s/+[0-9][0-9]*$$/+`git log --oneline 9b6afcf.. | wc -l`/;" Makefile
 
-# set 'ABCREV = default' to use abc/ as it is
-#
-# Note: If you do ABC development, make sure that 'abc' in this directory
-# is just a symlink to your actual ABC working directory, as 'make mrproper'
-# will remove the 'abc' directory and you do not want to accidentally
-# delete your work on ABC..
-ABCREV = 03da96f
-ABCPULL = 1
-ABCURL ?= https://github.com/YosysHQ/abc
 ABCMKARGS = CC="$(CXX)" CXX="$(CXX)" ABC_USE_LIBSTDCXX=1 ABC_USE_NAMESPACE=abc VERBOSE=$(Q)
 
 # set ABCEXTERNAL = <abc-command> to use an external ABC instance
@@ -263,45 +255,6 @@ CXX = g++
 CXXFLAGS += -std=gnu++11 -Os
 ABCMKARGS += ARCHFLAGS="-DABC_USE_STDINT_H"
 
-else ifeq ($(CONFIG),emcc)
-CXX = emcc
-CXXFLAGS := -std=$(CXXSTD) $(filter-out -fPIC -ggdb,$(CXXFLAGS))
-ABCMKARGS += ARCHFLAGS="-DABC_USE_STDINT_H -DABC_MEMALIGN=8"
-EMCC_CXXFLAGS := -Os -Wno-warn-absolute-paths
-EMCC_LINKFLAGS := --embed-file share
-EMCC_LINKFLAGS += -s NO_EXIT_RUNTIME=1
-EMCC_LINKFLAGS += -s EXPORTED_FUNCTIONS="['_main','_run','_prompt','_errmsg','_memset']"
-EMCC_LINKFLAGS += -s TOTAL_MEMORY=134217728
-EMCC_LINKFLAGS += -s EXPORTED_RUNTIME_METHODS='["ccall", "cwrap"]'
-# https://github.com/kripken/emscripten/blob/master/src/settings.js
-CXXFLAGS += $(EMCC_CXXFLAGS)
-LINKFLAGS += $(EMCC_LINKFLAGS)
-LIBS =
-EXE = .js
-
-DISABLE_SPAWN := 1
-
-TARGETS := $(filter-out $(PROGRAM_PREFIX)yosys-config,$(TARGETS))
-EXTRA_TARGETS += yosysjs-$(YOSYS_VER).zip
-
-ifeq ($(ENABLE_ABC),1)
-LINK_ABC := 1
-DISABLE_ABC_THREADS := 1
-endif
-
-viz.js:
-	wget -O viz.js.part https://github.com/mdaines/viz.js/releases/download/0.0.3/viz.js
-	mv viz.js.part viz.js
-
-yosysjs-$(YOSYS_VER).zip: yosys.js viz.js misc/yosysjs/*
-	rm -rf yosysjs-$(YOSYS_VER) yosysjs-$(YOSYS_VER).zip
-	mkdir -p yosysjs-$(YOSYS_VER)
-	cp viz.js misc/yosysjs/* yosys.js yosys.wasm yosysjs-$(YOSYS_VER)/
-	zip -r yosysjs-$(YOSYS_VER).zip yosysjs-$(YOSYS_VER)
-
-yosys.html: misc/yosys.html
-	$(P) cp misc/yosys.html yosys.html
-
 else ifeq ($(CONFIG),wasi)
 ifeq ($(WASI_SDK),)
 CXX = clang++
@@ -366,7 +319,7 @@ CXXFLAGS += -std=$(CXXSTD) -Os
 ABCMKARGS += ARCHFLAGS="-DABC_USE_STDINT_H $(ABC_ARCHFLAGS)"
 
 else
-$(error Invalid CONFIG setting '$(CONFIG)'. Valid values: clang, gcc, emcc, mxe, msys2-32, msys2-64, none)
+$(error Invalid CONFIG setting '$(CONFIG)'. Valid values: clang, gcc, mxe, msys2-32, msys2-64, none)
 endif
 
 ifeq ($(ENABLE_LIBYOSYS),1)
@@ -504,7 +457,7 @@ LIBS += -lpthread
 endif
 else
 ifeq ($(ABCEXTERNAL),)
-TARGETS += $(PROGRAM_PREFIX)yosys-abc$(EXE)
+TARGETS := $(PROGRAM_PREFIX)yosys-abc$(EXE) $(TARGETS)
 endif
 endif
 endif
@@ -520,8 +473,24 @@ endif
 LIBS_VERIFIC =
 ifeq ($(ENABLE_VERIFIC),1)
 VERIFIC_DIR ?= /usr/local/src/verific_lib
-VERIFIC_COMPONENTS ?= verilog database util containers hier_tree
-ifneq ($(DISABLE_VERIFIC_VHDL),1)
+VERIFIC_COMPONENTS ?= database util containers
+ifeq ($(ENABLE_VERIFIC_HIER_TREE),1)
+VERIFIC_COMPONENTS += hier_tree
+CXXFLAGS += -DVERIFIC_HIER_TREE_SUPPORT
+else
+ifneq ($(wildcard $(VERIFIC_DIR)/hier_tree),)
+VERIFIC_COMPONENTS += hier_tree
+endif
+endif
+ifeq ($(ENABLE_VERIFIC_SYSTEMVERILOG),1)
+VERIFIC_COMPONENTS += verilog
+CXXFLAGS += -DVERIFIC_SYSTEMVERILOG_SUPPORT
+else
+ifneq ($(wildcard $(VERIFIC_DIR)/verilog),)
+VERIFIC_COMPONENTS += verilog
+endif
+endif
+ifeq ($(ENABLE_VERIFIC_VHDL),1)
 VERIFIC_COMPONENTS += vhdl
 CXXFLAGS += -DVERIFIC_VHDL_SUPPORT
 else
@@ -537,9 +506,13 @@ ifeq ($(ENABLE_VERIFIC_LIBERTY),1)
 VERIFIC_COMPONENTS += synlib
 CXXFLAGS += -DVERIFIC_LIBERTY_SUPPORT
 endif
-ifneq ($(DISABLE_VERIFIC_EXTENSIONS),1)
+ifeq ($(ENABLE_VERIFIC_YOSYSHQ_EXTENSIONS),1)
 VERIFIC_COMPONENTS += extensions
 CXXFLAGS += -DYOSYSHQ_VERIFIC_EXTENSIONS
+else
+ifneq ($(wildcard $(VERIFIC_DIR)/extensions),)
+VERIFIC_COMPONENTS += extensions
+endif
 endif
 CXXFLAGS += $(patsubst %,-I$(VERIFIC_DIR)/%,$(VERIFIC_COMPONENTS)) -DYOSYS_ENABLE_VERIFIC
 ifeq ($(OS), Darwin)
@@ -736,9 +709,11 @@ top-all: $(TARGETS) $(EXTRA_TARGETS)
 	@echo "  Build successful."
 	@echo ""
 
-ifeq ($(CONFIG),emcc)
-yosys.js: $(filter-out yosysjs-$(YOSYS_VER).zip,$(EXTRA_TARGETS))
-endif
+.PHONY: compile-only
+compile-only: $(OBJS) $(GENFILES) $(EXTRA_TARGETS)
+	@echo ""
+	@echo "  Compile successful."
+	@echo ""
 
 $(PROGRAM_PREFIX)yosys$(EXE): $(OBJS)
 	$(P) $(CXX) -o $(PROGRAM_PREFIX)yosys$(EXE) $(EXE_LINKFLAGS) $(LINKFLAGS) $(OBJS) $(LIBS) $(LIBS_VERIFIC)
@@ -783,47 +758,46 @@ CXXFLAGS_NOVERIFIC = $(CXXFLAGS)
 LIBS_NOVERIFIC = $(LIBS)
 endif
 
-$(PROGRAM_PREFIX)yosys-config: misc/yosys-config.in
+$(PROGRAM_PREFIX)yosys-config: misc/yosys-config.in $(YOSYS_SRC)/Makefile
 	$(P) $(SED) -e 's#@CXXFLAGS@#$(subst -Ilibs/dlfcn-win32,,$(subst -I. -I"$(YOSYS_SRC)",-I"$(DATDIR)/include",$(strip $(CXXFLAGS_NOVERIFIC))))#;' \
 			-e 's#@CXX@#$(strip $(CXX))#;' -e 's#@LINKFLAGS@#$(strip $(LINKFLAGS) $(PLUGIN_LINKFLAGS))#;' -e 's#@LIBS@#$(strip $(LIBS_NOVERIFIC) $(PLUGIN_LIBS))#;' \
 			-e 's#@BINDIR@#$(strip $(BINDIR))#;' -e 's#@DATDIR@#$(strip $(DATDIR))#;' < $< > $(PROGRAM_PREFIX)yosys-config
 	$(Q) chmod +x $(PROGRAM_PREFIX)yosys-config
 
-abc/abc-$(ABCREV)$(EXE) abc/libabc-$(ABCREV).a:
+.PHONY: check-git-abc
+
+check-git-abc:
+	@if [ ! -d "$(YOSYS_SRC)/abc" ]; then \
+		echo "Error: The 'abc' directory does not exist."; \
+		echo "Initialize the submodule: Run 'git submodule update --init' to set up 'abc' as a submodule."; \
+		exit 1; \
+	elif git -C "$(YOSYS_SRC)" submodule status abc 2>/dev/null | grep -q '^ '; then \
+		exit 0; \
+	elif [ -f "$(YOSYS_SRC)/abc/.gitcommit" ] && ! grep -q '\$$Format:%h\$$' "$(YOSYS_SRC)/abc/.gitcommit"; then \
+		echo "'abc' comes from a tarball. Continuing."; \
+		exit 0; \
+	elif [ -f "$(YOSYS_SRC)/abc/.gitcommit" ] && grep -q '\$$Format:%h\$$' "$(YOSYS_SRC)/abc/.gitcommit"; then \
+		echo "Error: 'abc' is not configured as a git submodule."; \
+		echo "To resolve this:"; \
+		echo "1. Back up your changes: Save any modifications from the 'abc' directory to another location."; \
+		echo "2. Remove the existing 'abc' directory: Delete the 'abc' directory and all its contents."; \
+		echo "3. Initialize the submodule: Run 'git submodule update --init' to set up 'abc' as a submodule."; \
+		echo "4. Reapply your changes: Move your saved changes back to the 'abc' directory, if necessary."; \
+		exit 1; \
+	else \
+		echo "Initialize the submodule: Run 'git submodule update --init' to set up 'abc' as a submodule."; \
+		exit 1; \
+	fi
+
+abc/abc$(EXE) abc/libabc.a: check-git-abc
 	$(P)
-ifneq ($(ABCREV),default)
-	$(Q) if test -d abc/.hg; then \
-		echo 'REEBE: NOP qverpgbel vf n ut jbexvat pbcl! Erzbir nop/ naq er-eha "znxr".' | tr 'A-Za-z' 'N-ZA-Mn-za-m'; false; \
-	fi
-	$(Q) if test -d abc && test -d abc/.git && ! git -C abc diff-index --quiet HEAD; then \
-		echo 'REEBE: NOP pbagnvaf ybpny zbqvsvpngvbaf! Frg NOPERI=qrsnhyg va Lbflf Znxrsvyr!' | tr 'A-Za-z' 'N-ZA-Mn-za-m'; false; \
-	fi
-	$(Q) if test -d abc && ! test -d abc/.git && ! test "`cat abc/.gitcommit | cut -c1-7`" = "$(ABCREV)"; then \
-		echo 'REEBE: Qbjaybnqrq NOP irefvbaf qbrf abg zngpu! Qbjaybnq sebz:' | tr 'A-Za-z' 'N-ZA-Mn-za-m'; echo $(ABCURL)/archive/$(ABCREV).tar.gz; false; \
-	fi
-# set a variable so the test fails if git fails to run - when comparing outputs directly, empty string would match empty string
-	$(Q) if test -d abc && ! test -d abc/.git && test "`cat abc/.gitcommit | cut -c1-7`" = "$(ABCREV)"; then \
-		echo "Compiling local copy of ABC"; \
-	elif ! (cd abc 2> /dev/null && rev="`git rev-parse $(ABCREV)`" && test "`git rev-parse HEAD`" = "$$rev"); then \
-		test $(ABCPULL) -ne 0 || { echo 'REEBE: NOP abg hc gb qngr naq NOPCHYY frg gb 0 va Znxrsvyr!' | tr 'A-Za-z' 'N-ZA-Mn-za-m'; exit 1; }; \
-		echo "Pulling ABC from $(ABCURL):"; set -x; \
-		test -d abc || git clone $(ABCURL) abc; \
-		cd abc && $(MAKE) DEP= clean && git fetch $(ABCURL) && git checkout $(ABCREV); \
-	fi
-endif
-	$(Q) rm -f abc/abc-[0-9a-f]*
-	$(Q) $(MAKE) -C abc $(S) $(ABCMKARGS) $(if $(filter %.a,$@),PROG="abc-$(ABCREV)",PROG="abc-$(ABCREV)$(EXE)") MSG_PREFIX="$(eval P_OFFSET = 5)$(call P_SHOW)$(eval P_OFFSET = 10) ABC: " $(if $(filter %.a,$@),libabc-$(ABCREV).a)
+	$(Q) mkdir -p abc && $(MAKE) -C $(PROGRAM_PREFIX)abc -f "$(realpath $(YOSYS_SRC)/abc/Makefile)" ABCSRC="$(realpath $(YOSYS_SRC)/abc/)" $(S) $(ABCMKARGS) $(if $(filter %.a,$@),PROG="abc",PROG="abc$(EXE)") MSG_PREFIX="$(eval P_OFFSET = 5)$(call P_SHOW)$(eval P_OFFSET = 10) ABC: " $(if $(filter %.a,$@),libabc.a)
 
-ifeq ($(ABCREV),default)
-.PHONY: abc/abc-$(ABCREV)$(EXE)
-.PHONY: abc/libabc-$(ABCREV).a
-endif
+$(PROGRAM_PREFIX)yosys-abc$(EXE): abc/abc$(EXE)
+	$(P) cp $< $(PROGRAM_PREFIX)yosys-abc$(EXE)
 
-$(PROGRAM_PREFIX)yosys-abc$(EXE): abc/abc-$(ABCREV)$(EXE)
-	$(P) cp abc/abc-$(ABCREV)$(EXE) $(PROGRAM_PREFIX)yosys-abc$(EXE)
-
-$(PROGRAM_PREFIX)yosys-libabc.a: abc/libabc-$(ABCREV).a
-	$(P) cp abc/libabc-$(ABCREV).a $(PROGRAM_PREFIX)yosys-libabc.a
+$(PROGRAM_PREFIX)yosys-libabc.a: abc/libabc.a
+	$(P) cp $< $(PROGRAM_PREFIX)yosys-libabc.a
 
 ifneq ($(SEED),)
 SEEDOPT="-S $(SEED)"
@@ -1006,7 +980,13 @@ define DOC_USAGE_STDERR
 docs/source/generated/$(1): $(PROGRAM_PREFIX)$(1) docs/source/generated
 	-$(Q) ./$$< --help 2> $$@
 endef
-DOCS_USAGE_STDERR := yosys-config yosys-filterlib yosys-abc
+DOCS_USAGE_STDERR := yosys-config yosys-filterlib
+
+# The in-tree ABC (yosys-abc) is only built when ABCEXTERNAL is not set.
+ifeq ($(ABCEXTERNAL),)
+DOCS_USAGE_STDERR += yosys-abc
+endif
+
 $(foreach usage,$(DOCS_USAGE_STDERR),$(eval $(call DOC_USAGE_STDERR,$(usage))))
 
 # others print to stdout
@@ -1041,7 +1021,9 @@ clean:
 	rm -rf vloghtb/Makefile vloghtb/refdat vloghtb/rtl vloghtb/scripts vloghtb/spec vloghtb/check_yosys vloghtb/vloghammer_tb.tar.bz2 vloghtb/temp vloghtb/log_test_*
 	rm -f tests/svinterfaces/*.log_stdout tests/svinterfaces/*.log_stderr tests/svinterfaces/dut_result.txt tests/svinterfaces/reference_result.txt tests/svinterfaces/a.out tests/svinterfaces/*_syn.v tests/svinterfaces/*.diff
 	rm -f  tests/tools/cmp_tbdata
-	$(MAKE) -C docs clean
+	-$(MAKE) -C docs clean
+	-$(MAKE) -C docs/images clean
+	rm -rf docs/source/cmd docs/util/__pycache__
 
 clean-abc:
 	$(MAKE) -C abc DEP= clean
@@ -1057,16 +1039,17 @@ coverage:
 	genhtml coverage.info --output-directory coverage_html
 
 qtcreator:
+	echo "$(CXXFLAGS)" | grep -o '\-D[^ ]*' | tr ' ' '\n' | sed 's/-D/#define /' | sed 's/=/ /'> qtcreator.config
 	{ for file in $(basename $(OBJS)); do \
 		for prefix in cc y l; do if [ -f $${file}.$${prefix} ]; then echo $$file.$${prefix}; fi; done \
 	done; find backends frontends kernel libs passes -type f \( -name '*.h' -o -name '*.hh' \); } > qtcreator.files
 	{ echo .; find backends frontends kernel libs passes -type f \( -name '*.h' -o -name '*.hh' \) -printf '%h\n' | sort -u; } > qtcreator.includes
-	touch qtcreator.config qtcreator.creator
+	touch qtcreator.creator
 
 vcxsrc: $(GENFILES) $(EXTRA_TARGETS)
 	rm -rf yosys-win32-vcxsrc-$(YOSYS_VER){,.zip}
 	set -e; for f in `ls $(filter %.cc %.cpp,$(GENFILES)) $(addsuffix .cc,$(basename $(OBJS))) $(addsuffix .cpp,$(basename $(OBJS))) 2> /dev/null`; do \
-		echo "Analyse: $$f" >&2; cpp -std=c++11 -MM -I. -D_YOSYS_ $$f; done | sed 's,.*:,,; s,//*,/,g; s,/[^/]*/\.\./,/,g; y, \\,\n\n,;' | grep '^[^/]' | sort -u | grep -v kernel/version_ > srcfiles.txt
+		echo "Analyse: $$f" >&2; cpp -std=c++17 -MM -I. -D_YOSYS_ $$f; done | sed 's,.*:,,; s,//*,/,g; s,/[^/]*/\.\./,/,g; y, \\,\n\n,;' | grep '^[^/]' | sort -u | grep -v kernel/version_ > srcfiles.txt
 	bash misc/create_vcxsrc.sh yosys-win32-vcxsrc $(YOSYS_VER) $(GIT_REV)
 	echo "namespace Yosys { extern const char *yosys_version_str; const char *yosys_version_str=\"Yosys (Version Information Unavailable)\"; }" > kernel/version.cc
 	zip yosys-win32-vcxsrc-$(YOSYS_VER)/genfiles.zip $(GENFILES) kernel/version.cc
@@ -1103,14 +1086,6 @@ config-gcc-static: clean
 
 config-afl-gcc: clean
 	echo 'CONFIG := afl-gcc' > Makefile.conf
-
-config-emcc: clean
-	echo 'CONFIG := emcc' > Makefile.conf
-	echo 'ENABLE_TCL := 0' >> Makefile.conf
-	echo 'ENABLE_ABC := 0' >> Makefile.conf
-	echo 'ENABLE_PLUGINS := 0' >> Makefile.conf
-	echo 'ENABLE_READLINE := 0' >> Makefile.conf
-	echo 'ENABLE_ZLIB := 0' >> Makefile.conf
 
 config-wasi: clean
 	echo 'CONFIG := wasi' > Makefile.conf
@@ -1152,9 +1127,6 @@ echo-yosys-ver:
 
 echo-git-rev:
 	@echo "$(GIT_REV)"
-
-echo-abc-rev:
-	@echo "$(ABCREV)"
 
 echo-cxx:
 	@echo "$(CXX)"

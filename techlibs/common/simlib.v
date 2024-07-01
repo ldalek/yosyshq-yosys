@@ -1456,6 +1456,7 @@ endmodule
 
 // --------------------------------------------------------
 `ifndef SIMLIB_NOLUT
+//* group logic
 
 module \$lut (A, Y);
 
@@ -1471,6 +1472,7 @@ endmodule
 
 `endif
 // --------------------------------------------------------
+//* group logic
 
 module \$sop (A, Y);
 
