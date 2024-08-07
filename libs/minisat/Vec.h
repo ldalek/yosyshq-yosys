@@ -21,6 +21,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #ifndef Minisat_Vec_h
 #define Minisat_Vec_h
 
+#include <boost/predef.h>
 #include <assert.h>
 #include <limits>
 #include <new>
@@ -100,7 +101,13 @@ void vec<T,_Size>::capacity(Size min_cap) {
     Size add = max((min_cap - cap + 1) & ~1, ((cap >> 1) + 2) & ~1);   // NOTE: grow by approximately 3/2
     const Size size_max = std::numeric_limits<Size>::max();
     if ( ((size_max <= std::numeric_limits<int>::max()) && (add > size_max - cap))
-    ||   (((data = (T*)::reallocarray(data, (cap += add), sizeof(T))) == NULL) && errno == ENOMEM) )
+    ||   (
+#if BOOST_COMP_GNUC
+            ((data = (T*)::reallocarray(data, (cap += add), sizeof(T))) == NULL)
+#else
+            ((data = (T*)::realloc(data, (cap += add) * sizeof(T))) == NULL) 
+#endif
+	&& errno == ENOMEM) )
         throw OutOfMemoryException();
  }
 
