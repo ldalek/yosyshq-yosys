@@ -1,6 +1,8 @@
 Coarse arithmetics
 ------------------
 
+.. todo:: Add information about `$alu`, `$fa`, and `$lcu` cells.
+
 The `$macc` cell type represents a generalized multiply and accumulate
 operation. The cell is purely combinational. It outputs the result of summing up
 a sequence of products and other injected summands.

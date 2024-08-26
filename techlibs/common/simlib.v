@@ -540,7 +540,7 @@ endgenerate
 endmodule
 
 // --------------------------------------------------------
-
+//* group arith
 module \$fa (A, B, C, X, Y);
 
 parameter WIDTH = 1;
@@ -1326,7 +1326,7 @@ endgenerate
 endmodule
 
 // --------------------------------------------------------
-
+//* group wire
 module \$slice (A, Y);
 
 parameter OFFSET = 0;
@@ -1341,7 +1341,7 @@ assign Y = A >> OFFSET;
 endmodule
 
 // --------------------------------------------------------
-
+//* group wire
 module \$concat (A, B, Y);
 
 parameter A_WIDTH = 0;
@@ -1694,7 +1694,7 @@ endspecify
 endmodule
 
 // --------------------------------------------------------
-
+//* group binary
 module \$bweqx (A, B, Y);
 
 parameter WIDTH = 0;
@@ -1712,7 +1712,7 @@ endgenerate
 endmodule
 
 // --------------------------------------------------------
-
+//* group mux
 module \$bwmux (A, B, S, Y);
 
 parameter WIDTH = 0;
@@ -2828,7 +2828,7 @@ endmodule
 `endif
 
 // --------------------------------------------------------
-
+//* group formal_tag
 module \$set_tag (A, SET, CLR, Y);
 
 parameter TAG = "";
@@ -2844,7 +2844,7 @@ assign Y = A;
 endmodule
 
 // --------------------------------------------------------
-
+//* group formal_tag
 module \$get_tag (A, Y);
 
 parameter TAG = "";
@@ -2858,7 +2858,7 @@ assign Y = A;
 endmodule
 
 // --------------------------------------------------------
-
+//* group formal_tag
 module \$overwrite_tag (A, SET, CLR);
 
 parameter TAG = "";
@@ -2871,7 +2871,7 @@ input [WIDTH-1:0] CLR;
 endmodule
 
 // --------------------------------------------------------
-
+//* group formal_tag
 module \$original_tag (A, Y);
 
 parameter TAG = "";
@@ -2885,7 +2885,7 @@ assign Y = A;
 endmodule
 
 // --------------------------------------------------------
-
+//* group formal_tag
 module \$future_ff (A, Y);
 
 parameter WIDTH = 0;
@@ -2898,7 +2898,7 @@ assign Y = A;
 endmodule
 
 // --------------------------------------------------------
-
+//* group debug
 (* noblackbox *)
 module \$scopeinfo ();
 
