@@ -37,7 +37,6 @@ available, go to :ref:`commandindex`.
    getting_started/index
    using_yosys/index
    yosys_internals/index
-   test_suites
 
 .. toctree::
    :caption: Appendix

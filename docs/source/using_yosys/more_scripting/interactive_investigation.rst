@@ -114,7 +114,7 @@ to the third diagram:
    
    Output of the third `show` command in :ref:`example_ys`
    
-Here we see that the `proc` command not only has removed the artifacts left
+Here we see that the `opt` command not only has removed the artifacts left
 behind by `proc`, but also determined correctly that it can remove the first
 `$mux` cell without changing the behavior of the circuit.
 

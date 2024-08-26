@@ -94,7 +94,7 @@ Installing all prerequisites for Ubuntu 20.04:
 
 .. code:: console
 
-   sudo sudo apt-get install build-essential clang bison flex \
+   sudo sudo apt-get install build-essential clang lld bison flex \
       libreadline-dev gawk tcl-dev libffi-dev git make \
       graphviz xdot pkg-config python3 libboost-system-dev \
       libboost-python-dev libboost-filesystem-dev zlib1g-dev
@@ -138,7 +138,8 @@ To use a compiler different than the default, use:
 
 .. seealso:: 
 
-   Refer to :doc:`/test_suites` for details on testing Yosys once compiled.
+   Refer to :doc:`/yosys_internals/extending_yosys/test_suites` for details on
+   testing Yosys once compiled.
 
 Source tree and build system
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -192,7 +193,7 @@ directories:
 
 ``tests/``
    This directory contains the suite of unit tests and regression tests used by
-   Yosys.  See :doc:`/test_suites`.
+   Yosys.  See :doc:`/yosys_internals/extending_yosys/test_suites`.
 
 The top-level Makefile includes :file:`frontends/{*}/Makefile.inc`,
 :file:`passes/{*}/Makefile.inc` and :file:`backends/{*}/Makefile.inc`. So when

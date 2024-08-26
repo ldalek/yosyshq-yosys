@@ -6,7 +6,7 @@ import os
 project = 'YosysHQ Yosys'
 author = 'YosysHQ GmbH'
 copyright ='2024 YosysHQ GmbH'
-yosys_ver = "0.42"
+yosys_ver = "0.44"
 
 # select HTML theme
 html_theme = 'furo-ys'
@@ -21,7 +21,13 @@ highlight_language = 'none'
 # default single quotes to attempt auto reference, or fallback to code
 default_role = 'autoref'
 
-extensions = ['sphinx.ext.autosectionlabel', 'sphinxcontrib.bibtex']
+extensions = ['sphinx.ext.autosectionlabel', 'sphinxcontrib.bibtex', 'rtds_action']
+
+# rtds_action
+rtds_action_github_repo = "YosysHQ/yosys"
+rtds_action_path = "."
+rtds_action_artifact_prefix = "cmd-ref-"
+rtds_action_github_token = os.environ["GITHUB_TOKEN"]
 
 # Ensure that autosectionlabel will produce unique names
 autosectionlabel_prefix_document = True
