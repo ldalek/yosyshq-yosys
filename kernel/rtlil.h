@@ -58,6 +58,7 @@ namespace RTLIL
 
 	struct Const;
 	struct AttrObject;
+	struct NamedObject;
 	struct Selection;
 	struct Monitor;
 	struct Design;
@@ -839,6 +840,11 @@ struct RTLIL::AttrObject
 	vector<int> get_intvec_attribute(const RTLIL::IdString &id) const;
 };
 
+struct RTLIL::NamedObject : public RTLIL::AttrObject
+{
+	RTLIL::IdString name;
+};
+
 struct RTLIL::SigChunk
 {
 	RTLIL::Wire *wire;
@@ -1094,11 +1100,14 @@ public:
 struct RTLIL::Selection
 {
 	bool full_selection;
+	bool selects_boxes;
 	pool<RTLIL::IdString> selected_modules;
 	dict<RTLIL::IdString, pool<RTLIL::IdString>> selected_members;
+	RTLIL::Design *current_design;
 
-	Selection(bool full = true) : full_selection(full) { }
+	Selection(bool full = true, bool boxes = false, RTLIL::Design *design = nullptr) : full_selection(full), selects_boxes(boxes), current_design(design) { }
 
+	bool boxed_module(const RTLIL::IdString &mod_name) const;
 	bool selected_module(const RTLIL::IdString &mod_name) const;
 	bool selected_whole_module(const RTLIL::IdString &mod_name) const;
 	bool selected_member(const RTLIL::IdString &mod_name, const RTLIL::IdString &memb_name) const;
@@ -1249,7 +1258,7 @@ struct RTLIL::Design
 #endif
 };
 
-struct RTLIL::Module : public RTLIL::AttrObject
+struct RTLIL::Module : public RTLIL::NamedObject
 {
 	unsigned int hashidx_;
 	unsigned int hash() const { return hashidx_; }
@@ -1272,7 +1281,6 @@ public:
 	std::vector<RTLIL::SigSig>   connections_;
 	std::vector<RTLIL::Binding*> bindings_;
 
-	RTLIL::IdString name;
 	idict<RTLIL::IdString> avail_parameters;
 	dict<RTLIL::IdString, RTLIL::Const> parameter_default_values;
 	dict<RTLIL::IdString, RTLIL::Memory*> memories;
@@ -1315,6 +1323,9 @@ public:
 
 	std::vector<RTLIL::Wire*> selected_wires() const;
 	std::vector<RTLIL::Cell*> selected_cells() const;
+	std::vector<RTLIL::Memory*> selected_memories() const;
+	std::vector<RTLIL::Process*> selected_processes() const;
+	std::vector<RTLIL::NamedObject*> selected_members() const;
 
 	template<typename T> bool selected(T *member) const {
 		return design->selected_member(name, member->name);
@@ -1600,7 +1611,7 @@ namespace RTLIL_BACKEND {
 void dump_wire(std::ostream &f, std::string indent, const RTLIL::Wire *wire);
 }
 
-struct RTLIL::Wire : public RTLIL::AttrObject
+struct RTLIL::Wire : public RTLIL::NamedObject
 {
 	unsigned int hashidx_;
 	unsigned int hash() const { return hashidx_; }
@@ -1623,7 +1634,6 @@ public:
 	void operator=(RTLIL::Wire &other) = delete;
 
 	RTLIL::Module *module;
-	RTLIL::IdString name;
 	int width, start_offset, port_id;
 	bool port_input, port_output, upto, is_signed;
 
@@ -1639,14 +1649,13 @@ inline int GetSize(RTLIL::Wire *wire) {
 	return wire->width;
 }
 
-struct RTLIL::Memory : public RTLIL::AttrObject
+struct RTLIL::Memory : public RTLIL::NamedObject
 {
 	unsigned int hashidx_;
 	unsigned int hash() const { return hashidx_; }
 
 	Memory();
 
-	RTLIL::IdString name;
 	int width, start_offset, size;
 #ifdef WITH_PYTHON
 	~Memory();
@@ -1654,7 +1663,7 @@ struct RTLIL::Memory : public RTLIL::AttrObject
 #endif
 };
 
-struct RTLIL::Cell : public RTLIL::AttrObject
+struct RTLIL::Cell : public RTLIL::NamedObject
 {
 	unsigned int hashidx_;
 	unsigned int hash() const { return hashidx_; }
@@ -1671,7 +1680,6 @@ public:
 	void operator=(RTLIL::Cell &other) = delete;
 
 	RTLIL::Module *module;
-	RTLIL::IdString name;
 	RTLIL::IdString type;
 	dict<RTLIL::IdString, RTLIL::SigSpec> connections_;
 	dict<RTLIL::IdString, RTLIL::Const> parameters;
@@ -1764,7 +1772,7 @@ struct RTLIL::SyncRule
 	RTLIL::SyncRule *clone() const;
 };
 
-struct RTLIL::Process : public RTLIL::AttrObject
+struct RTLIL::Process : public RTLIL::NamedObject
 {
 	unsigned int hashidx_;
 	unsigned int hash() const { return hashidx_; }
@@ -1776,7 +1784,6 @@ protected:
 	~Process();
 
 public:
-	RTLIL::IdString name;
 	RTLIL::Module *module;
 	RTLIL::CaseRule root_case;
 	std::vector<RTLIL::SyncRule*> syncs;
