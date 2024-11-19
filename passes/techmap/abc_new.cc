@@ -128,7 +128,7 @@ struct AbcNewPass : public ScriptPass {
 					exe_options = abc_exe_options;
 					log_header(active_design, "Mapping module '%s'.\n", log_id(mod));
 					log_push();
-					active_design->selection().select(mod);
+					active_design->select(mod);
 				}
 
 				run(stringf("  abc9_ops -write_box %s/input.box", tmpdir.c_str()));
@@ -144,7 +144,7 @@ struct AbcNewPass : public ScriptPass {
 			}
 
 			if (!help_mode) {
-				active_design->selection_stack.pop_back();
+				active_design->pop_selection();
 			}
 		}
 	}
