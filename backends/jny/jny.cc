@@ -412,7 +412,7 @@ struct JnyBackend : public Backend {
     void help() override {
         //   |---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|
         log("\n");
-        log("    jny [options] [selection]\n");
+        log("    write_jny [options] [filename]\n");
         log("\n");
         log("Write JSON netlist metadata for the current design\n");
         log("\n");
@@ -484,7 +484,7 @@ struct JnyPass : public Pass {
         log("\n");
         log("    jny [options] [selection]\n");
         log("\n");
-        log("Write JSON netlist metadata for the current design\n");
+        log("Write JSON netlist metadata for all selected objects\n");
         log("\n");
         log("    -o <filename>\n");
         log("        write to the specified file.\n");
