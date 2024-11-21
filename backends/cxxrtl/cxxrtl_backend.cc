@@ -2774,9 +2774,7 @@ struct CxxrtlWorker {
 		RTLIL::Module *top_module = nullptr;
 		std::vector<RTLIL::Module*> modules;
 		TopoSort<RTLIL::Module*> topo_design;
-		for (auto module : design->modules()) {
-			if (!design->selected_module(module))
-				continue;
+		for (auto module : design->all_selected_modules()) {
 			if (module->get_bool_attribute(ID(cxxrtl_blackbox)))
 				modules.push_back(module); // cxxrtl blackboxes first
 			if (module->get_blackbox_attribute() || module->get_bool_attribute(ID(cxxrtl_blackbox)))
@@ -2910,10 +2908,7 @@ struct CxxrtlWorker {
 		bool has_feedback_arcs = false;
 		bool has_buffered_comb_wires = false;
 
-		for (auto module : design->modules()) {
-			if (!design->selected_module(module))
-				continue;
-
+		for (auto module : design->all_selected_modules()) {
 			SigMap &sigmap = sigmaps[module];
 			sigmap.set(module);
 
@@ -3410,14 +3405,8 @@ struct CxxrtlWorker {
 	{
 		has_sync_init = false;
 
-		for (auto module : design->modules()) {
+		for (auto module : design->selected_modules(RTLIL::SELECT_WHOLE_CMDERR, RTLIL::SB_ALL)) {
 			if (module->get_blackbox_attribute() && !module->has_attribute(ID(cxxrtl_blackbox)))
-				continue;
-
-			if (!design->selected_whole_module(module))
-				if (design->selected_module(module))
-					log_cmd_error("Can't handle partially selected module `%s'!\n", id2cstr(module->name));
-			if (!design->selected_module(module))
 				continue;
 
 			for (auto proc : module->processes)

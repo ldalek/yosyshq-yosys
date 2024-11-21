@@ -122,25 +122,18 @@ struct IntersynthBackend : public Backend {
 		for (auto lib : libs)
 			ct.setup_design(lib);
 
-		for (auto module : design->modules())
+		if (!selected) design->push_complete_selection();
+		for (auto module : design->selected_modules(RTLIL::SELECT_WHOLE_CMDERR, RTLIL::SB_UNBOXED_ONLY))
 		{
 			SigMap sigmap(module);
 
-			if (module->get_blackbox_attribute())
-				continue;
 			if (module->memories.size() == 0 && module->processes.size() == 0 && module->cells().size() == 0)
 				continue;
 
-			if (selected && !design->selected_whole_module(module->name)) {
-				if (design->selected_module(module->name))
-					log_cmd_error("Can't handle partially selected module %s!\n", log_id(module->name));
-				continue;
-			}
+			if (module->has_memories() || module->has_processes())
+				log_error("Can't generate a netlist for a module with unprocessed memories or processes!\n");
 
 			log("Generating netlist %s.\n", log_id(module->name));
-
-			if (module->memories.size() != 0 || module->processes.size() != 0)
-				log_error("Can't generate a netlist for a module with unprocessed memories or processes!\n");
 
 			std::set<std::string> constcells_code;
 			netlists_code += stringf("# Netlist of module %s\n", log_id(module->name));
@@ -195,6 +188,7 @@ struct IntersynthBackend : public Backend {
 				netlists_code += code;
 			netlists_code += "\n";
 		}
+		if (!selected) design->pop_selection();
 
 		if (!flag_notypes) {
 			*f << stringf("### Connection Types\n");

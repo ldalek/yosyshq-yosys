@@ -37,7 +37,6 @@ struct JnyWriter
 {
     private:
         std::ostream &f;
-        bool _use_selection;
 
         // XXX(aki): TODO: this needs to be updated to us
         // dict<T, V> and then coalesce_cells needs to be updated
@@ -112,9 +111,8 @@ struct JnyWriter
         }
 
     public:
-    JnyWriter(std::ostream &f, bool use_selection, bool connections, bool attributes, bool properties) noexcept:
-        f(f), _use_selection(use_selection),
-        _include_connections(connections), _include_attributes(attributes), _include_properties(properties)
+    JnyWriter(std::ostream &f, bool connections, bool attributes, bool properties) noexcept:
+        f(f), _include_connections(connections), _include_attributes(attributes), _include_properties(properties)
          { }
 
     void write_metadata(Design *design, uint16_t indent_level = 0, std::string invk = "")
@@ -155,7 +153,7 @@ struct JnyWriter
         f << "  \"modules\": [\n";
 
         bool first{true};
-        for (auto mod : _use_selection ? design->selected_modules() : design->modules()) {
+        for (auto mod : design->all_selected_modules()) {
             if (!first)
                 f << ",\n";
             write_module(mod, indent_level + 2);
@@ -425,6 +423,9 @@ struct JnyBackend : public Backend {
         log("    -no-properties\n");
         log("        Don't include property information in the netlist output.\n");
         log("\n");
+	log("    -selected\n");
+	log("        only write selected parts of the design.\n");
+        log("\n");
         log("The JSON schema for JNY output files is located in the \"jny.schema.json\" file\n");
         log("which is located at \"https://raw.githubusercontent.com/YosysHQ/yosys/main/misc/jny.schema.json\"\n");
         log("\n");
@@ -435,6 +436,7 @@ struct JnyBackend : public Backend {
         bool connections{true};
         bool attributes{true};
         bool properties{true};
+        bool selected{false};
 
         size_t argidx{1};
         for (; argidx < args.size(); argidx++) {
@@ -450,6 +452,11 @@ struct JnyBackend : public Backend {
 
             if (args[argidx] == "-no-properties") {
                 properties = false;
+                continue;
+            }
+
+            if (args[argidx] == "-selected") {
+                selected = true;
                 continue;
             }
 
@@ -469,8 +476,10 @@ struct JnyBackend : public Backend {
 
         log_header(design, "Executing jny backend.\n");
 
-        JnyWriter jny_writer(*f, false, connections, attributes, properties);
+        if (!selected) design->push_complete_selection();
+        JnyWriter jny_writer(*f, connections, attributes, properties);
         jny_writer.write_metadata(design, 0, invk.str());
+        if (!selected) design->pop_selection();
     }
 
 } JnyBackend;
@@ -561,8 +570,7 @@ struct JnyPass : public Pass {
             f = &buf;
         }
 
-
-        JnyWriter jny_writer(*f, false, connections, attributes, properties);
+        JnyWriter jny_writer(*f, connections, attributes, properties);
         jny_writer.write_metadata(design, 0, invk.str());
 
         if (!empty) {

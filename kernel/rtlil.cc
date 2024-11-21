@@ -1218,10 +1218,10 @@ std::vector<RTLIL::Module*> RTLIL::Design::selected_modules(RTLIL::SelectPartial
 				log_warning("Ignoring partially selected module %s.\n", log_id(it.first));
 				break;
 			case RTLIL::SELECT_WHOLE_ERR:
-				log_error("Unsupported partially selected module %s.\n", log_id(it.first));
+				log_error("Can't handle partially selected module %s.\n", log_id(it.first));
 				break;
 			case RTLIL::SELECT_WHOLE_CMDERR:
-				log_cmd_error("Unsupported partially selected module %s.\n", log_id(it.first));
+				log_cmd_error("Can't handle partially selected module %s.\n", log_id(it.first));
 				break;
 			default:
 				break;

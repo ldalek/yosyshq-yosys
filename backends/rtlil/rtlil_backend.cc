@@ -335,37 +335,33 @@ void RTLIL_BACKEND::dump_module(std::ostream &f, std::string indent, RTLIL::Modu
 
 	if (print_body)
 	{
-		for (auto it : module->wires())
-			if (!only_selected || design->selected(module, it)) {
-				if (only_selected)
-					f << stringf("\n");
-				dump_wire(f, indent + "  ", it);
-			}
+		for (auto wire : module->selected_wires()) {
+			if (only_selected)
+				f << stringf("\n");
+			dump_wire(f, indent + "  ", wire);
+		}
 
-		for (auto it : module->memories)
-			if (!only_selected || design->selected(module, it.second)) {
-				if (only_selected)
-					f << stringf("\n");
-				dump_memory(f, indent + "  ", it.second);
-			}
+		for (auto memory : module->selected_memories()) {
+			if (only_selected)
+				f << stringf("\n");
+			dump_memory(f, indent + "  ", memory);
+		}
 
-		for (auto it : module->cells())
-			if (!only_selected || design->selected(module, it)) {
-				if (only_selected)
-					f << stringf("\n");
-				dump_cell(f, indent + "  ", it);
-			}
+		for (auto cell : module->selected_cells()) {
+			if (only_selected)
+				f << stringf("\n");
+			dump_cell(f, indent + "  ", cell);
+		}
 
-		for (auto it : module->processes)
-			if (!only_selected || design->selected(module, it.second)) {
-				if (only_selected)
-					f << stringf("\n");
-				dump_proc(f, indent + "  ", it.second);
-			}
+		for (auto process : module->selected_processes()) {
+			if (only_selected)
+				f << stringf("\n");
+			dump_proc(f, indent + "  ", process);
+		}
 
 		bool first_conn_line = true;
 		for (auto it = module->connections().begin(); it != module->connections().end(); ++it) {
-			bool show_conn = !only_selected || design->selected_whole_module(module->name);
+			bool show_conn = !only_selected || module->is_selected_whole();
 			if (!show_conn) {
 				RTLIL::SigSpec sigs = it->first;
 				sigs.append(it->second);
@@ -392,12 +388,13 @@ void RTLIL_BACKEND::dump_design(std::ostream &f, RTLIL::Design *design, bool onl
 {
 	int init_autoidx = autoidx;
 
+	if (!only_selected) design->push_complete_selection();
 	if (!flag_m) {
 		int count_selected_mods = 0;
-		for (auto module : design->modules()) {
-			if (design->selected_whole_module(module->name))
+		for (auto module : design->all_selected_modules()) {
+			if (module->is_selected_whole())
 				flag_m = true;
-			if (design->selected(module))
+			else
 				count_selected_mods++;
 		}
 		if (count_selected_mods > 1)
@@ -410,13 +407,12 @@ void RTLIL_BACKEND::dump_design(std::ostream &f, RTLIL::Design *design, bool onl
 		f << stringf("autoidx %d\n", autoidx);
 	}
 
-	for (auto module : design->modules()) {
-		if (!only_selected || design->selected(module)) {
-			if (only_selected)
-				f << stringf("\n");
-			dump_module(f, "", module, design, only_selected, flag_m, flag_n);
-		}
+	for (auto module : design->all_selected_modules()) {
+		if (only_selected)
+			f << stringf("\n");
+		dump_module(f, "", module, design, only_selected, flag_m, flag_n);
 	}
+	if (!only_selected) design->pop_selection();
 
 	log_assert(init_autoidx == autoidx);
 }

@@ -31,7 +31,6 @@ PRIVATE_NAMESPACE_BEGIN
 struct JsonWriter
 {
 	std::ostream &f;
-	bool use_selection;
 	bool aig_mode;
 	bool compat_int_mode;
 
@@ -43,9 +42,8 @@ struct JsonWriter
 	dict<SigBit, string> sigids;
 	pool<Aig> aig_models;
 
-	JsonWriter(std::ostream &f, bool use_selection, bool aig_mode, bool compat_int_mode) :
-			f(f), use_selection(use_selection), aig_mode(aig_mode),
-			compat_int_mode(compat_int_mode) { }
+	JsonWriter(std::ostream &f, bool aig_mode, bool compat_int_mode) :
+			f(f), aig_mode(aig_mode), compat_int_mode(compat_int_mode) { }
 
 	string get_string(string str)
 	{
@@ -170,7 +168,7 @@ struct JsonWriter
 		bool first = true;
 		for (auto n : module->ports) {
 			Wire *w = module->wire(n);
-			if (use_selection && !module->selected(w))
+			if (!module->selected(w))
 				continue;
 			f << stringf("%s\n", first ? "" : ",");
 			f << stringf("        %s: {\n", get_name(n).c_str());
@@ -189,9 +187,7 @@ struct JsonWriter
 
 		f << stringf("      \"cells\": {");
 		first = true;
-		for (auto c : module->cells()) {
-			if (use_selection && !module->selected(c))
-				continue;
+		for (auto c : module->selected_cells()) {
 			// Eventually we will want to emit $scopeinfo, but currently this
 			// will break JSON netlist consumers like nextpnr
 			if (c->type == ID($scopeinfo))
@@ -239,21 +235,19 @@ struct JsonWriter
 		}
 		f << stringf("\n      },\n");
 
-		if (!module->memories.empty()) {
+		if (module->has_memories()) {
 			f << stringf("      \"memories\": {");
 			first = true;
-			for (auto &it : module->memories) {
-				if (use_selection && !module->selected(it.second))
-					continue;
+			for (auto m : module->selected_memories()) {
 				f << stringf("%s\n", first ? "" : ",");
-				f << stringf("        %s: {\n", get_name(it.second->name).c_str());
-				f << stringf("          \"hide_name\": %s,\n", it.second->name[0] == '$' ? "1" : "0");
+				f << stringf("        %s: {\n", get_name(m->name).c_str());
+				f << stringf("          \"hide_name\": %s,\n", m->name[0] == '$' ? "1" : "0");
 				f << stringf("          \"attributes\": {");
-				write_parameters(it.second->attributes);
+				write_parameters(m->attributes);
 				f << stringf("\n          },\n");
-				f << stringf("          \"width\": %d,\n", it.second->width);
-				f << stringf("          \"start_offset\": %d,\n", it.second->start_offset);
-				f << stringf("          \"size\": %d\n", it.second->size);
+				f << stringf("          \"width\": %d,\n", m->width);
+				f << stringf("          \"start_offset\": %d,\n", m->start_offset);
+				f << stringf("          \"size\": %d\n", m->size);
 				f << stringf("        }");
 				first = false;
 			}
@@ -262,9 +256,7 @@ struct JsonWriter
 
 		f << stringf("      \"netnames\": {");
 		first = true;
-		for (auto w : module->wires()) {
-			if (use_selection && !module->selected(w))
-				continue;
+		for (auto w : module->selected_wires()) {
 			f << stringf("%s\n", first ? "" : ",");
 			f << stringf("        %s: {\n", get_name(w->name).c_str());
 			f << stringf("          \"hide_name\": %s,\n", w->name[0] == '$' ? "1" : "0");
@@ -294,9 +286,8 @@ struct JsonWriter
 		f << stringf("{\n");
 		f << stringf("  \"creator\": %s,\n", get_string(yosys_version_str).c_str());
 		f << stringf("  \"modules\": {\n");
-		vector<Module*> modules = use_selection ? design->selected_modules() : design->modules();
 		bool first_module = true;
-		for (auto mod : modules) {
+		for (auto mod : design->all_selected_modules()) {
 			if (!first_module)
 				f << stringf(",\n");
 			write_module(mod);
@@ -354,7 +345,7 @@ struct JsonBackend : public Backend {
 		log("        as JSON numbers (for compatibility with old parsers)\n");
 		log("\n");
 		log("    -selected\n");
-		log("        output only select module\n");
+		log("        only write selected parts of the design.\n");
 		log("\n");
 		log("\n");
 		log("The general syntax of the JSON output created by this command is as follows:\n");
@@ -623,8 +614,10 @@ struct JsonBackend : public Backend {
 
 		log_header(design, "Executing JSON backend.\n");
 
-		JsonWriter json_writer(*f, use_selection, aig_mode, compat_int_mode);
+		if (!use_selection) design->push_complete_selection();
+		JsonWriter json_writer(*f, aig_mode, compat_int_mode);
 		json_writer.write_design(design);
+		if (!use_selection) design->pop_selection();
 	}
 } JsonBackend;
 
@@ -693,7 +686,7 @@ struct JsonPass : public Pass {
 			f = &buf;
 		}
 
-		JsonWriter json_writer(*f, true, aig_mode, compat_int_mode);
+		JsonWriter json_writer(*f, aig_mode, compat_int_mode);
 		json_writer.write_design(design);
 
 		if (!empty) {
