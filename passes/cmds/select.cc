@@ -212,21 +212,16 @@ static void select_op_random(RTLIL::Design *design, RTLIL::Selection &lhs, int c
 {
 	vector<pair<IdString, IdString>> objects;
 
-	for (auto mod : design->modules())
+	design->push_selection(lhs);
+	for (auto mod : design->all_selected_modules())
 	{
-		if (!lhs.selected_module(mod->name))
-			continue;
+		for (auto cell : mod->selected_cells())
+			objects.push_back(make_pair(mod->name, cell->name));
 
-		for (auto cell : mod->cells()) {
-			if (lhs.selected_member(mod->name, cell->name))
-				objects.push_back(make_pair(mod->name, cell->name));
-		}
-
-		for (auto wire : mod->wires()) {
-			if (lhs.selected_member(mod->name, wire->name))
-				objects.push_back(make_pair(mod->name, wire->name));
-		}
+		for (auto wire : mod->selected_wires())
+			objects.push_back(make_pair(mod->name, wire->name));
 	}
+	design->pop_selection();
 
 	lhs = RTLIL::Selection(false, lhs.selects_boxes, design);
 
@@ -243,28 +238,23 @@ static void select_op_random(RTLIL::Design *design, RTLIL::Selection &lhs, int c
 
 static void select_op_submod(RTLIL::Design *design, RTLIL::Selection &lhs)
 {
-	for (auto mod : design->modules())
-	{
-		if (lhs.selected_whole_module(mod->name))
-		{
-			for (auto cell : mod->cells())
-			{
-				if (design->module(cell->type) == nullptr)
-					continue;
+	design->push_selection(lhs);
+	for (auto mod : design->all_selected_modules())
+		for (auto cell : mod->selected_cells())
+			if (design->module(cell->type) != nullptr)
 				lhs.selected_modules.insert(cell->type);
-			}
-		}
-	}
+	design->pop_selection();
 }
 
 static void select_op_cells_to_modules(RTLIL::Design *design, RTLIL::Selection &lhs)
 {
 	RTLIL::Selection new_sel(false, lhs.selects_boxes, design);
-	for (auto mod : design->modules())
-		if (lhs.selected_module(mod->name))
-			for (auto cell : mod->cells())
-				if (lhs.selected_member(mod->name, cell->name) && (design->module(cell->type) != nullptr))
-					new_sel.selected_modules.insert(cell->type);
+	design->push_selection(lhs);
+	for (auto mod : design->all_selected_modules())
+		for (auto cell : mod->selected_cells())
+			if (design->module(cell->type) != nullptr)
+				new_sel.selected_modules.insert(cell->type);
+	design->pop_selection();
 	lhs = new_sel;
 }
 
@@ -288,26 +278,23 @@ static void select_op_fullmod(RTLIL::Design *design, RTLIL::Selection &lhs)
 
 static void select_op_alias(RTLIL::Design *design, RTLIL::Selection &lhs)
 {
-	for (auto mod : design->modules())
+	design->push_selection(lhs);
+	for (auto mod : design->all_selected_modules())
 	{
-		if (!lhs.selects_boxes && mod->get_blackbox_attribute())
-			continue;
 		if (lhs.selected_whole_module(mod->name))
-			continue;
-		if (!lhs.selected_module(mod->name))
 			continue;
 
 		SigMap sigmap(mod);
 		SigPool selected_bits;
 
-		for (auto wire : mod->wires())
-			if (lhs.selected_member(mod->name, wire->name))
-				selected_bits.add(sigmap(wire));
+		for (auto wire : mod->selected_wires())
+			selected_bits.add(sigmap(wire));
 
 		for (auto wire : mod->wires())
 			if (!lhs.selected_member(mod->name, wire->name) && selected_bits.check_any(sigmap(wire)))
 				lhs.selected_members[mod->name].insert(wire->name);
 	}
+	design->pop_selection();
 }
 
 static void select_op_union(RTLIL::Design* design, RTLIL::Selection &lhs, const RTLIL::Selection &rhs)
@@ -476,16 +463,17 @@ static int select_op_expand(RTLIL::Design *design, RTLIL::Selection &lhs, std::v
 {
 	int sel_objects = 0;
 	bool is_input, is_output;
-	for (auto mod : design->modules())
+	design->push_selection(lhs);
+	for (auto mod : design->all_selected_modules())
 	{
-		if (lhs.selected_whole_module(mod->name) || !lhs.selected_module(mod->name))
+		if (lhs.is_selected_whole_module(mod->name))
 			continue;
 
 		std::set<RTLIL::Wire*> selected_wires;
 		auto selected_members = lhs.selected_members[mod->name];
 
-		for (auto wire : mod->wires())
-			if (lhs.selected_member(mod->name, wire->name) && limits.count(wire->name) == 0)
+		for (auto wire : mod->selected_wires())
+			if (limits.count(wire->name) == 0)
 				selected_wires.insert(wire);
 
 		for (auto &conn : mod->connections())
@@ -537,6 +525,7 @@ static int select_op_expand(RTLIL::Design *design, RTLIL::Selection &lhs, std::v
 		exclude_match:;
 		}
 	}
+	design->pop_selection();
 
 	return sel_objects;
 }
