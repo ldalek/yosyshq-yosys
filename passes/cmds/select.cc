@@ -175,24 +175,24 @@ static void select_op_neg(RTLIL::Design *design, RTLIL::Selection &lhs)
 	{
 		if (!lhs.selects_boxes && mod->get_blackbox_attribute())
 			continue;
-		if (lhs.selected_whole_module(mod->name))
+		if (lhs.is_selected_whole_module(mod->name))
 			continue;
-		if (!lhs.selected_module(mod->name)) {
+		if (!lhs.is_selected_module(mod->name)) {
 			new_sel.selected_modules.insert(mod->name);
 			continue;
 		}
 
 		for (auto wire : mod->wires())
-			if (!lhs.selected_member(mod->name, wire->name))
+			if (!lhs.is_selected_member(mod->name, wire->name))
 				new_sel.selected_members[mod->name].insert(wire->name);
 		for (auto &it : mod->memories)
-			if (!lhs.selected_member(mod->name, it.first))
+			if (!lhs.is_selected_member(mod->name, it.first))
 				new_sel.selected_members[mod->name].insert(it.first);
 		for (auto cell : mod->cells())
-			if (!lhs.selected_member(mod->name, cell->name))
+			if (!lhs.is_selected_member(mod->name, cell->name))
 				new_sel.selected_members[mod->name].insert(cell->name);
 		for (auto &it : mod->processes)
-			if (!lhs.selected_member(mod->name, it.first))
+			if (!lhs.is_selected_member(mod->name, it.first))
 				new_sel.selected_members[mod->name].insert(it.first);
 	}
 
@@ -263,7 +263,7 @@ static void select_op_module_to_cells(RTLIL::Design *design, RTLIL::Selection &l
 	RTLIL::Selection new_sel(false, lhs.selects_boxes, design);
 	for (auto mod : design->modules())
 		for (auto cell : mod->cells())
-			if ((design->module(cell->type) != nullptr) && lhs.selected_whole_module(cell->type))
+			if ((design->module(cell->type) != nullptr) && lhs.is_selected_whole_module(cell->type))
 				new_sel.selected_members[mod->name].insert(cell->name);
 	lhs = new_sel;
 }
@@ -281,7 +281,7 @@ static void select_op_alias(RTLIL::Design *design, RTLIL::Selection &lhs)
 	design->push_selection(lhs);
 	for (auto mod : design->all_selected_modules())
 	{
-		if (lhs.selected_whole_module(mod->name))
+		if (lhs.is_selected_whole_module(mod->name))
 			continue;
 
 		SigMap sigmap(mod);
@@ -291,7 +291,7 @@ static void select_op_alias(RTLIL::Design *design, RTLIL::Selection &lhs)
 			selected_bits.add(sigmap(wire));
 
 		for (auto wire : mod->wires())
-			if (!lhs.selected_member(mod->name, wire->name) && selected_bits.check_any(sigmap(wire)))
+			if (!lhs.is_selected_member(mod->name, wire->name) && selected_bits.check_any(sigmap(wire)))
 				lhs.selected_members[mod->name].insert(wire->name);
 	}
 	design->pop_selection();
@@ -405,9 +405,9 @@ static void select_op_intersect(RTLIL::Design *design, RTLIL::Selection &lhs, co
 	std::vector<RTLIL::IdString> del_list;
 
 	for (auto mod_name : lhs.selected_modules) {
-		if (rhs.selected_whole_module(mod_name))
+		if (rhs.is_selected_whole_module(mod_name))
 			continue;
-		if (rhs.selected_module(mod_name))
+		if (rhs.is_selected_module(mod_name))
 			for (auto memb_name : rhs.selected_members.at(mod_name))
 				lhs.selected_members[mod_name].insert(memb_name);
 		del_list.push_back(mod_name);
@@ -417,15 +417,15 @@ static void select_op_intersect(RTLIL::Design *design, RTLIL::Selection &lhs, co
 
 	del_list.clear();
 	for (auto &it : lhs.selected_members) {
-		if (rhs.selected_whole_module(it.first))
+		if (rhs.is_selected_whole_module(it.first))
 			continue;
-		if (!rhs.selected_module(it.first)) {
+		if (!rhs.is_selected_module(it.first)) {
 			del_list.push_back(it.first);
 			continue;
 		}
 		std::vector<RTLIL::IdString> del_list2;
 		for (auto &it2 : it.second)
-			if (!rhs.selected_member(it.first, it2))
+			if (!rhs.is_selected_member(it.first, it2))
 				del_list2.push_back(it2);
 		for (auto &it2 : del_list2)
 			it.second.erase(it2);
@@ -993,7 +993,7 @@ static std::string describe_selection_for_assert(RTLIL::Design *design, RTLIL::S
 	std::string desc = "Selection contains:\n";
 	for (auto mod : design->all_selected_modules())
 	{
-		if (whole_modules && sel->selected_whole_module(mod->name))
+		if (whole_modules && sel->is_selected_whole_module(mod->name))
 			desc += stringf("%s\n", id2cstr(mod->name));
 		for (auto it : mod->selected_members())
 			desc += stringf("%s/%s\n", id2cstr(mod->name), id2cstr(it->name));
@@ -1495,7 +1495,7 @@ struct SelectPass : public Pass {
 			sel->optimize(design);
 			for (auto mod : design->all_selected_modules())
 			{
-				if (sel->selected_whole_module(mod->name) && list_mode)
+				if (sel->is_selected_whole_module(mod->name) && list_mode)
 					log("%s\n", id2cstr(mod->name));
 				if (!list_mod_mode)
 					for (auto it : mod->selected_members())
@@ -1736,7 +1736,7 @@ static void log_matches(const char *title, Module *module, const T &list)
 	std::vector<IdString> matches;
 
 	for (auto &it : list)
-		if (module->selected(it.second))
+		if (module->design->is_selected_member(module->name, it.second->name))
 			matches.push_back(it.first);
 
 	if (!matches.empty()) {
@@ -1776,7 +1776,7 @@ struct LsPass : public Pass {
 				log("\n%d %s:\n", int(matches.size()), "modules");
 				std::sort(matches.begin(), matches.end(), RTLIL::sort_by_id_str());
 				for (auto id : matches)
-					log("  %s%s\n", log_id(id), design->selected_whole_module(design->module(id)) ? "" : "*");
+					log("  %s%s\n", log_id(id), design->is_selected_whole_module(design->module(id)) ? "" : "*");
 			}
 		}
 		else

@@ -1287,7 +1287,7 @@ std::vector<RTLIL::Module*> RTLIL::Design::selected_modules(RTLIL::SelectPartial
 	std::vector<RTLIL::Module*> result;
 	result.reserve(modules_.size());
 	for (auto &it : modules_)
-		if (selected_whole_module(it.first) || (include_partials && selected_module(it.first))) {
+		if (is_selected_whole_module(it.first) || (include_partials && is_selected_module(it.first))) {
 			if (!(exclude_boxes && it.second->get_blackbox_attribute(ignore_wb)))
 				result.push_back(it.second);
 			else
@@ -1314,7 +1314,7 @@ std::vector<RTLIL::Module*> RTLIL::Design::selected_modules(RTLIL::SelectPartial
 				default:
 					break;
 				}
-		} else if (!include_partials && selected_module(it.first)) {
+		} else if (!include_partials && is_selected_module(it.first)) {
 			switch(partials)
 			{
 			case RTLIL::SELECT_WHOLE_WARN:
@@ -2541,12 +2541,12 @@ bool RTLIL::Module::has_processes_warn() const
 
 bool RTLIL::Module::is_selected() const
 {
-	return design->selected_module(this->name);
+	return design->is_selected_module(this->name);
 }
 
 bool RTLIL::Module::is_selected_whole() const
 {
-	return design->selected_whole_module(this->name);
+	return design->is_selected_whole_module(this->name);
 }
 
 std::vector<RTLIL::Wire*> RTLIL::Module::selected_wires() const
