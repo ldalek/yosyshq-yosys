@@ -773,6 +773,17 @@ bool RTLIL::Selection::boxed_module(const RTLIL::IdString &mod_name) const
 
 bool RTLIL::Selection::selected_module(const RTLIL::IdString &mod_name) const
 {
+	if (full_selection)
+		return true;
+	if (selected_modules.count(mod_name) > 0)
+		return true;
+	if (selected_members.count(mod_name) > 0)
+		return true;
+	return false;
+}
+
+bool RTLIL::Selection::is_selected_module(const RTLIL::IdString &mod_name) const
+{
 	if (!selects_boxes && boxed_module(mod_name))
 		return false;
 	if (full_selection)
@@ -786,6 +797,15 @@ bool RTLIL::Selection::selected_module(const RTLIL::IdString &mod_name) const
 
 bool RTLIL::Selection::selected_whole_module(const RTLIL::IdString &mod_name) const
 {
+	if (full_selection)
+		return true;
+	if (selected_modules.count(mod_name) > 0)
+		return true;
+	return false;
+}
+
+bool RTLIL::Selection::is_selected_whole_module(const RTLIL::IdString &mod_name) const
+{
 	if (!selects_boxes && boxed_module(mod_name))
 		return false;
 	if (full_selection)
@@ -796,6 +816,18 @@ bool RTLIL::Selection::selected_whole_module(const RTLIL::IdString &mod_name) co
 }
 
 bool RTLIL::Selection::selected_member(const RTLIL::IdString &mod_name, const RTLIL::IdString &memb_name) const
+{
+	if (full_selection)
+		return true;
+	if (selected_modules.count(mod_name) > 0)
+		return true;
+	if (selected_members.count(mod_name) > 0)
+		if (selected_members.at(mod_name).count(memb_name) > 0)
+			return true;
+	return false;
+}
+
+bool RTLIL::Selection::is_selected_member(const RTLIL::IdString &mod_name, const RTLIL::IdString &memb_name) const
 {
 	if (!selects_boxes && boxed_module(mod_name))
 		return false;
@@ -1118,6 +1150,15 @@ bool RTLIL::Design::selected_module(const RTLIL::IdString& mod_name) const
 	return selection().selected_module(mod_name);
 }
 
+bool RTLIL::Design::is_selected_module(const RTLIL::IdString& mod_name) const
+{
+	if (!selected_active_module.empty() && mod_name != selected_active_module)
+		return false;
+	if (selection_stack.size() == 0)
+		return true;
+	return selection().is_selected_module(mod_name);
+}
+
 bool RTLIL::Design::selected_whole_module(const RTLIL::IdString& mod_name) const
 {
 	if (!selected_active_module.empty() && mod_name != selected_active_module)
@@ -1125,6 +1166,15 @@ bool RTLIL::Design::selected_whole_module(const RTLIL::IdString& mod_name) const
 	if (selection_stack.size() == 0)
 		return true;
 	return selection().selected_whole_module(mod_name);
+}
+
+bool RTLIL::Design::is_selected_whole_module(const RTLIL::IdString& mod_name) const
+{
+	if (!selected_active_module.empty() && mod_name != selected_active_module)
+		return false;
+	if (selection_stack.size() == 0)
+		return true;
+	return selection().is_selected_whole_module(mod_name);
 }
 
 bool RTLIL::Design::selected_member(const RTLIL::IdString& mod_name, const RTLIL::IdString& memb_name) const
@@ -1136,14 +1186,33 @@ bool RTLIL::Design::selected_member(const RTLIL::IdString& mod_name, const RTLIL
 	return selection().selected_member(mod_name, memb_name);
 }
 
+bool RTLIL::Design::is_selected_member(const RTLIL::IdString& mod_name, const RTLIL::IdString& memb_name) const
+{
+	if (!selected_active_module.empty() && mod_name != selected_active_module)
+		return false;
+	if (selection_stack.size() == 0)
+		return true;
+	return selection().is_selected_member(mod_name, memb_name);
+}
+
 bool RTLIL::Design::selected_module(RTLIL::Module *mod) const
 {
 	return selected_module(mod->name);
 }
 
+bool RTLIL::Design::is_selected_module(RTLIL::Module *mod) const
+{
+	return is_selected_module(mod->name);
+}
+
 bool RTLIL::Design::selected_whole_module(RTLIL::Module *mod) const
 {
 	return selected_whole_module(mod->name);
+}
+
+bool RTLIL::Design::is_selected_whole_module(RTLIL::Module *mod) const
+{
+	return is_selected_whole_module(mod->name);
 }
 
 void RTLIL::Design::push_selection(RTLIL::Selection sel)
@@ -1174,6 +1243,40 @@ void RTLIL::Design::push_complete_selection()
 void RTLIL::Design::pop_selection()
 {
 	selection_stack.pop_back();
+}
+
+std::vector<RTLIL::Module*> RTLIL::Design::selected_modules() const
+{
+	std::vector<RTLIL::Module*> result;
+	result.reserve(modules_.size());
+	for (auto &it : modules_)
+		if (selected_module(it.first) && !it.second->get_blackbox_attribute())
+			result.push_back(it.second);
+	return result;
+}
+
+std::vector<RTLIL::Module*> RTLIL::Design::selected_whole_modules() const
+{
+	std::vector<RTLIL::Module*> result;
+	result.reserve(modules_.size());
+	for (auto &it : modules_)
+		if (selected_whole_module(it.first) && !it.second->get_blackbox_attribute())
+			result.push_back(it.second);
+	return result;
+}
+
+std::vector<RTLIL::Module*> RTLIL::Design::selected_whole_modules_warn(bool include_wb) const
+{
+	std::vector<RTLIL::Module*> result;
+	result.reserve(modules_.size());
+	for (auto &it : modules_)
+		if (it.second->get_blackbox_attribute(include_wb))
+			continue;
+		else if (selected_whole_module(it.first))
+			result.push_back(it.second);
+		else if (selected_module(it.first))
+			log_warning("Ignoring partially selected module %s.\n", log_id(it.first));
+	return result;
 }
 
 std::vector<RTLIL::Module*> RTLIL::Design::selected_modules(RTLIL::SelectPartials partials, RTLIL::SelectBoxes boxes) const

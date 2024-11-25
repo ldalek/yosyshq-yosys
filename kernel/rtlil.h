@@ -1132,9 +1132,15 @@ struct RTLIL::Selection
 	Selection(bool full = true, bool boxes = false, RTLIL::Design *design = nullptr) : full_selection(full), selects_boxes(boxes), current_design(design) { }
 
 	bool boxed_module(const RTLIL::IdString &mod_name) const;
+	[[deprecated("Use is_selected_module()")]]
 	bool selected_module(const RTLIL::IdString &mod_name) const;
+	bool is_selected_module(const RTLIL::IdString &mod_name) const;
+	[[deprecated("Use is_selected_whole_module()")]]
 	bool selected_whole_module(const RTLIL::IdString &mod_name) const;
+	bool is_selected_whole_module(const RTLIL::IdString &mod_name) const;
+	[[deprecated("Use is_selected_member()")]]
 	bool selected_member(const RTLIL::IdString &mod_name, const RTLIL::IdString &memb_name) const;
+	bool is_selected_member(const RTLIL::IdString &mod_name, const RTLIL::IdString &memb_name) const;
 	void optimize(RTLIL::Design *design);
 
 	template<typename T1> void select(T1 *module) {
@@ -1232,12 +1238,22 @@ struct RTLIL::Design
 	void check();
 	void optimize();
 
+	[[deprecated("Use is_selected_module() instead.")]]
 	bool selected_module(const RTLIL::IdString &mod_name) const;
+	bool is_selected_module(const RTLIL::IdString &mod_name) const;
+	[[deprecated("Use is_selected_whole_module() instead.")]]
 	bool selected_whole_module(const RTLIL::IdString &mod_name) const;
+	bool is_selected_whole_module(const RTLIL::IdString &mod_name) const;
+	[[deprecated("Use is_selected_member() instead.")]]
 	bool selected_member(const RTLIL::IdString &mod_name, const RTLIL::IdString &memb_name) const;
+	bool is_selected_member(const RTLIL::IdString &mod_name, const RTLIL::IdString &memb_name) const;
 
+	[[deprecated("Use is_selected_module() instead.")]]
 	bool selected_module(RTLIL::Module *mod) const;
+	bool is_selected_module(RTLIL::Module *mod) const;
+	[[deprecated("Use is_selected_whole_module() instead.")]]
 	bool selected_whole_module(RTLIL::Module *mod) const;
+	bool is_selected_whole_module(RTLIL::Module *mod) const;
 
 	void push_selection(RTLIL::Selection sel);
 	void push_empty_selection();
@@ -1257,12 +1273,22 @@ struct RTLIL::Design
 		return selection().full_selection;
 	}
 
+	// [[deprecated("Use is_selected() instead.")]]
 	template<typename T1> bool selected(T1 *module) const {
 		return selected_module(module->name);
 	}
 
+	bool is_selected(RTLIL::NamedObject *module) const {
+		return is_selected_module(module->name);
+	}
+
+	// [[deprecated("Use is_selected() instead.")]]
 	template<typename T1, typename T2> bool selected(T1 *module, T2 *member) const {
 		return selected_member(module->name, member->name);
+	}
+
+	bool is_selected(RTLIL::NamedObject *module, RTLIL::NamedObject *member) const {
+		return is_selected_member(module->name, member->name);
 	}
 
 	template<typename T1> void select(T1 *module) {
@@ -1280,20 +1306,27 @@ struct RTLIL::Design
 	}
 
 
+	[[deprecated("Use all_selected_modules() instead.")]]
+	std::vector<RTLIL::Module*> selected_modules() const;
+
+	[[deprecated("Use all_selected_whole_modules() instead.")]]
+	std::vector<RTLIL::Module*> selected_whole_modules() const;
+	[[deprecated("Use selected_unboxed_whole_modules_warn() or selected_nonbb_whole_modules_warn() instead.")]]
+	std::vector<RTLIL::Module*> selected_whole_modules_warn(bool include_wb = false) const;
+
+	// The new methods:
 	std::vector<RTLIL::Module*> selected_modules(RTLIL::SelectPartials partials, RTLIL::SelectBoxes boxes = SB_ALL) const;
 
-	[[deprecated("Use selected_unboxed_modules() to maintain prior behaviour, or consider one of the other selected module helpers.")]]
-	std::vector<RTLIL::Module*> selected_modules() const { return selected_modules(SELECT_ALL, SB_UNBOXED_WARN); }
 	std::vector<RTLIL::Module*> all_selected_modules() const { return selected_modules(SELECT_ALL, SB_ALL); }
 	std::vector<RTLIL::Module*> selected_unboxed_modules() const { return selected_modules(SELECT_ALL, SB_UNBOXED_ONLY); }
 	std::vector<RTLIL::Module*> selected_unboxed_modules_warn() const { return selected_modules(SELECT_ALL, SB_UNBOXED_WARN); }
 
-	[[deprecated("Use select_unboxed_whole_modules() to maintain prior behaviour, or consider one of the other selected whole module helpers.")]]
-	std::vector<RTLIL::Module*> selected_whole_modules() const { return selected_modules(SELECT_WHOLE_ONLY, SB_UNBOXED_WARN); }
 	std::vector<RTLIL::Module*> all_selected_whole_modules() const { return selected_modules(SELECT_WHOLE_ONLY, SB_ALL); }
-	std::vector<RTLIL::Module*> selected_whole_modules_warn(bool include_wb = false) const { return selected_modules(SELECT_WHOLE_WARN, include_wb ? SB_EXCL_BB_WARN : SB_UNBOXED_WARN); }
+	std::vector<RTLIL::Module*> all_selected_whole_modules_warn() const { return selected_modules(SELECT_WHOLE_WARN, SB_ALL); }
 	std::vector<RTLIL::Module*> selected_unboxed_whole_modules() const { return selected_modules(SELECT_WHOLE_ONLY, SB_UNBOXED_ONLY); }
 	std::vector<RTLIL::Module*> selected_unboxed_whole_modules_warn() const { return selected_modules(SELECT_WHOLE_WARN, SB_UNBOXED_WARN); }
+	std::vector<RTLIL::Module*> selected_nonbb_whole_modules_warn() const { return selected_modules(SELECT_WHOLE_WARN, SB_EXCL_BB_WARN); }
+
 #ifdef WITH_PYTHON
 	static std::map<unsigned int, RTLIL::Design*> *get_all_designs(void);
 #endif
