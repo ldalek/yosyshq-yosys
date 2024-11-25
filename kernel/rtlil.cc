@@ -1275,7 +1275,7 @@ std::vector<RTLIL::Module*> RTLIL::Design::selected_whole_modules_warn(bool incl
 		else if (selected_whole_module(it.first))
 			result.push_back(it.second);
 		else if (selected_module(it.first))
-			log_warning("Ignoring partially selected module %s.\n", log_id(it.first));
+			log_warning("Ignoring partially selected module %s.\n", id2cstr(it.first));
 	return result;
 }
 
@@ -1294,22 +1294,22 @@ std::vector<RTLIL::Module*> RTLIL::Design::selected_modules(RTLIL::SelectPartial
 				switch (boxes)
 				{
 				case RTLIL::SB_UNBOXED_WARN:
-					log_warning("Ignoring boxed module %s.\n", log_id(it.first));
+					log_warning("Ignoring boxed module %s.\n", id2cstr(it.first));
 					break;
 				case RTLIL::SB_EXCL_BB_WARN:
-					log_warning("Ignoring blackbox module %s.\n", log_id(it.first));
+					log_warning("Ignoring blackbox module %s.\n", id2cstr(it.first));
 					break;
 				case RTLIL::SB_UNBOXED_ERR:
-					log_error("Unsupported boxed module %s.\n", log_id(it.first));
+					log_error("Unsupported boxed module %s.\n", id2cstr(it.first));
 					break;
 				case RTLIL::SB_EXCL_BB_ERR:
-					log_error("Unsupported blackbox module %s.\n", log_id(it.first));
+					log_error("Unsupported blackbox module %s.\n", id2cstr(it.first));
 					break;
 				case RTLIL::SB_UNBOXED_CMDERR:
-					log_cmd_error("Unsupported boxed module %s.\n", log_id(it.first));
+					log_cmd_error("Unsupported boxed module %s.\n", id2cstr(it.first));
 					break;
 				case RTLIL::SB_EXCL_BB_CMDERR:
-					log_cmd_error("Unsupported blackbox module %s.\n", log_id(it.first));
+					log_cmd_error("Unsupported blackbox module %s.\n", id2cstr(it.first));
 					break;
 				default:
 					break;
@@ -1318,13 +1318,13 @@ std::vector<RTLIL::Module*> RTLIL::Design::selected_modules(RTLIL::SelectPartial
 			switch(partials)
 			{
 			case RTLIL::SELECT_WHOLE_WARN:
-				log_warning("Ignoring partially selected module %s.\n", log_id(it.first));
+				log_warning("Ignoring partially selected module %s.\n", id2cstr(it.first));
 				break;
 			case RTLIL::SELECT_WHOLE_ERR:
-				log_error("Can't handle partially selected module %s.\n", log_id(it.first));
+				log_error("Can't handle partially selected module %s.\n", id2cstr(it.first));
 				break;
 			case RTLIL::SELECT_WHOLE_CMDERR:
-				log_cmd_error("Can't handle partially selected module %s.\n", log_id(it.first));
+				log_cmd_error("Can't handle partially selected module %s.\n", id2cstr(it.first));
 				break;
 			default:
 				break;
