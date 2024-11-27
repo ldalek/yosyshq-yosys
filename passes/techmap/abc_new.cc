@@ -110,7 +110,7 @@ struct AbcNewPass : public ScriptPass {
 
 			if (!help_mode) {
 				selected_modules = active_design->selected_whole_modules_warn();
-				active_design->selection_stack.emplace_back(false);
+				active_design->push_empty_selection();
 			} else {
 				selected_modules = {nullptr};
 				run("foreach module in selection");
