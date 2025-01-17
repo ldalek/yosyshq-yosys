@@ -1033,7 +1033,7 @@ docs/reqs:
 	$(Q) $(MAKE) -C docs reqs
 
 .PHONY: docs/prep
-docs/prep: docs/source/cmd/abc.rst docs/source/generated/cells.json docs/source/generated/cmds.json docs/gen docs/usage
+docs/prep: docs/source/generated/cells.json docs/source/generated/cmds.json docs/gen docs/usage
 
 DOC_TARGET ?= html
 docs: docs/prep
