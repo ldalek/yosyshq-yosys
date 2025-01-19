@@ -1056,7 +1056,7 @@ clean:
 	rm -f  tests/tools/cmp_tbdata
 	-$(MAKE) -C docs clean
 	-$(MAKE) -C docs/images clean
-	rm -rf docs/source/cmd docs/util/__pycache__
+	rm -rf docs/util/__pycache__
 
 clean-abc:
 	$(MAKE) -C abc DEP= clean
